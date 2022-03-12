@@ -1,6 +1,6 @@
 {
   "log": {
-    "debug": true
+    "verbose": true
   },
 
   "era": {
@@ -13,14 +13,13 @@
 
   "mode": {
     "main": {
-      "info": "real world hooker",
+      "info":  "the real world hooker!",
       "port":  9966,
       "name":  "playground",
       "token": "f78742efd8c6d8a3762f7ff35399779c"
     },
-
     "test": {
-      "info": "testing",
+      "info":  "testing",
       "port":  9965,
       "name":  "sandbox",
       "token": "0c05a8813956d6aff86c6ebd13e0b3b1"
@@ -32,16 +31,13 @@
       "Server": [
         { "title": "Server" }
       ],
-
       "Account": [
         { "title": "Account" }
       ],
-
       "Player": [
         { "title": "Player" },
         { "publicAddress": "Address" }
       ],
-
       "Metadata": [
         { "librarySectionTitle": "Library" },
         { "title": "Title" },

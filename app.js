@@ -9,7 +9,7 @@ const log = require('log')
 const pkg = require('./package.json')
 const cfg = require('./config.json')
 // ------
-const dbg = cfg.log.debug
+const dbg = cfg.log.verbose
 const key = process.argv.at(2) || 'test'
 const app = {
   web: null,
@@ -20,6 +20,7 @@ const app = {
 /* ------------------------------------------------------------------------- */
 
 class EventData {
+  #okay = false
   #name = null
   #data = {}
   #user = null
@@ -41,10 +42,10 @@ class EventData {
 
       // event properties
       for (const key in cfg) {
-        if (has(obj, key)) {
+        if (nox.has(obj, key)) {
           cfg[key].forEach((o) => {
             for (const k in o) {
-              if (has(obj[key], k)) {
+              if (nox.has(obj[key], k)) {
                 // define property (mixpanel expect strings)
                 this.#data[o[k]] = String(obj[key][k])
               }
@@ -54,18 +55,23 @@ class EventData {
       }
 
       // event user
-      if (has(this.#data, usr.key)) {
+      if (nox.has(this.#data, usr.key)) {
         this.#user = this.#data[usr.key] // [Account]
         this.#data[usr.property] = this.#user // [distinct_id] = [Account]
       }
+
+      // event status
+      this.#okay = Object.keys(this.#data).length > 1 && this.#name != null
     } else {
       log.err('@ EventData(obj, cfg, usr) : missing one or more arg...')
       log.err('> obj:', Boolean(obj))
       log.err('> cfg:', Boolean(cfg))
       log.err('> usr:', Boolean(usr))
+      this.#okay = false
     }
   }
 
+  get okay() { return this.#okay }
   get name() { return this.#name }
   get data() { return this.#data }
   get user() { return this.#user }
@@ -114,7 +120,6 @@ app.web.listen(cfg.mode[key].port, () => {
  +------+---------- */
 
 app.web.post('/', app.get.any(), (req, res) => {
-  log.out('----------')
   log.out('HTTP /POST')
   log.out('----------')
 
@@ -134,15 +139,21 @@ app.web.post('/', app.get.any(), (req, res) => {
     cfg.data.user
   )
 
+
   log.out('post > event.name:', e.name)
   log.out('post > event.user:', e.user)
   log.out('post > event.data:', e.data)
 
-  app.mix.track(e.name, e.data, (err) => {
-    if (err) {
-      log.bug(err)
-    }
-  })
+  if (e.okay) {
+    log.out('send: mixpanel.com')
+    app.mix.track(e.name, e.data, (err) => {
+      if (err) {
+        log.bug(err)
+      }
+    })
+  } else {
+    log.err('skip: missing event data!')
+  }
 })
 
 /* -----+------------------------------------------------------------------- +
