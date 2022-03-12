@@ -9,7 +9,7 @@ const log = require('log')
 const pkg = require('./package.json')
 const cfg = require('./config.json')
 // ------
-const dbg = cfg.log.verbose
+const dbg = process.argv.at(3) || cfg.log.verbose
 const key = process.argv.at(2) || 'test'
 const app = {
   web: null,
@@ -20,7 +20,6 @@ const app = {
 /* ------------------------------------------------------------------------- */
 
 class EventData {
-  #okay = false
   #name = null
   #data = {}
   #user = null
@@ -28,7 +27,7 @@ class EventData {
   /**
    * Constructs the data using a `source` with a matching `config` structure.
    *
-   * @see config.json ( contains the structuring )
+   * @see config.json ( contains the structuring ).
    *
    * @param {object} obj `source` ( payload )
    * @param {object} cfg `config` : structure
@@ -37,8 +36,10 @@ class EventData {
 
   constructor(obj, cfg, usr) {
     if (obj != null && cfg != null && usr != null) {
+      // note: mixpanel expects string values
+
       // event name
-      this.#name = obj.event
+      this.#name = String(obj.event)
 
       // event properties
       for (const key in cfg) {
@@ -46,7 +47,6 @@ class EventData {
           cfg[key].forEach((o) => {
             for (const k in o) {
               if (nox.has(obj[key], k)) {
-                // define property (mixpanel expect strings)
                 this.#data[o[k]] = String(obj[key][k])
               }
             }
@@ -55,31 +55,27 @@ class EventData {
       }
 
       // event user
-      if (nox.has(this.#data, usr.key)) {
-        this.#user = this.#data[usr.key] // [Account]
-        this.#data[usr.property] = this.#user // [distinct_id] = [Account]
-      }
-
-      // event status
-      this.#okay = Object.keys(this.#data).length > 1 && this.#name != null
+      this.#user = nox.get(this.#data, usr.key, null)
     } else {
-      log.err('@ EventData(obj, cfg, usr) : missing one or more arg...')
+      log.err('@ EventData(obj, cfg, usr) : missing one or more arg ...')
       log.err('> obj:', Boolean(obj))
       log.err('> cfg:', Boolean(cfg))
       log.err('> usr:', Boolean(usr))
-      this.#okay = false
     }
   }
 
-  get okay() { return this.#okay }
   get name() { return this.#name }
   get data() { return this.#data }
   get user() { return this.#user }
+
+  complete() {
+    return String(this.name).length > 1 && Object.keys(this.data).length > 1
+  }
 }
 
 /* -----+------------------------------------------------------------------- +
  | CODE : INIT
- +------+---------- */
+ +------+-------------------- */
 
 era.config(cfg.era.locale)
 log.config({
@@ -108,8 +104,8 @@ if (nox.has(cfg.mode, key)) {
 }
 
 /* -----+------------------------------------------------------------------- +
- | CODE : HTTP HOOKER
- +------+---------- */
+ | CODE : HTTP HOOK
+ +------+-------------------- */
 
 app.web.listen(cfg.mode[key].port, () => {
   log.out('listening for incoming data ...')
@@ -117,50 +113,48 @@ app.web.listen(cfg.mode[key].port, () => {
 
 /* -----+------------------------------------------------------------------- +
  | CODE : HTTP POST
- +------+---------- */
+ +------+-------------------- */
 
 app.web.post('/', app.get.any(), (req, res) => {
-  log.out('HTTP /POST')
-  log.out('----------')
+  log.out('(http/post) hook!')
 
   var p = req.body ? JSON.parse(req.body.payload) : null
   var h = req.headers || { 'user-agent': null }
 
   if (dbg) {
-    log.out('post < body.payload:', p)
+    log.out('(http/post) body.payload:', p)
   }
 
-  log.out('post < headers:', h)
-  log.out('post < headers[user-agent]:', h['user-agent'])
-  log.out('----------')
+  log.out('(http/post) headers:', h)
+  log.out('(http/post) headers[user-agent]:', h['user-agent'])
+  log.out('>---------')
 
   var e = new EventData(p,
     cfg.data.structure,
     cfg.data.user
   )
 
+  log.out('(http/post) event.name:', e.name)
+  log.out('(http/post) event.user:', e.user)
+  log.out('(http/post) event.data:', e.data)
 
-  log.out('post > event.name:', e.name)
-  log.out('post > event.user:', e.user)
-  log.out('post > event.data:', e.data)
-
-  if (e.okay) {
-    log.out('send: mixpanel.com')
+  if (e.complete()) {
+    log.out('(http/post) event.send() > mixpanel.com')
     app.mix.track(e.name, e.data, (err) => {
       if (err) {
         log.bug(err)
       }
     })
   } else {
-    log.err('skip: missing event data!')
+    log.err('(http/post) event.skip()')
   }
 })
 
 /* -----+------------------------------------------------------------------- +
  | CODE : HTTP GET
- +------+---------- */
+ +------+-------------------- */
 
 app.web.get('/', (req, res) => {
-  log.out('HTTP /GET')
+  log.out('(http/get)', '...')
   res.send(`${pkg.name} is up and running!`)
 })

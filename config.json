@@ -32,7 +32,8 @@
         { "title": "Server" }
       ],
       "Account": [
-        { "title": "Account" }
+        { "title": "Account" },
+        { "title": "distinct_id" }
       ],
       "Player": [
         { "title": "Player" },

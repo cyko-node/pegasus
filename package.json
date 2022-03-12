@@ -12,7 +12,8 @@
   },
   "scripts": {
     "test": "node app.js test",
-    "main": "node app.js main"
+    "main": "node app.js main",
+    "nuke": "pwsh clean.ps1"
   },
   "repository": {
     "type": "git",
@@ -25,12 +26,12 @@
     }
   ],
   "dependencies": {
-    "era": "file:../era",
+    "era": "github:cyko-node/era#typescript",
     "express": "^4.17.3",
-    "log": "file:../log",
+    "log": "github:cyko-node/log#typescript",
     "mixpanel": "^0.14.0",
     "multer": "^1.4.4",
-    "nox": "file:../nox"
+    "nox": "github:cyko-node/nox#typescript"
   },
   "devDependencies": {
     "@types/mixpanel": "^2.14.3"
