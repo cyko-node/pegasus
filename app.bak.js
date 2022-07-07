@@ -1,52 +1,25 @@
+'strict mode'
+
 const express  = require('express')
 const multer   = require('multer')
 const mixpanel = require('mixpanel')
+// ------
+const nox = require('nox')
+const era = require('era')
+const log = require('log')
 // ------
 const pkg = require('./package.json')
 const cfg = require('./config.json')
 // ------
 const dbg = process.argv.at(3) || cfg.log.verbose
 const key = process.argv.at(2) || 'test'
-// ------
-const web = express()
-const get = multer()
-const mix = mixpanel.init(cfg.mode[key].token)
-
-
-// #region help:lib (common) ----------------------------------------------- *
-
-const lib = {
-  log: {
-    header: `[${pkg.name}]:`,
-    out(...x) { console.debug(...x) },
-    err(...x) { console.error(...x) },
-  }
+const app = {
+  web: null,
+  get: null,
+  mix: null,
 }
 
-// #endregion
-// #region help:nox -------------------------------------------------------- *
-
-const nox = {
-  has(o, k) { return Object.prototype.hasOwnProperty.call(o, k) },
-  get(o, k, d = null) { return this.has(o, k) ? o[k] : d }
-}
-
-// #endregion
-// #region help:log -------------------------------------------------------- *
-
-const log = {
-  out(...x) { lib.log.out(lib.log.header, ...x) },
-  err(...x) { lib.log.out(lib.log.header, ...x) },
-  bug(...x) { lib.log.err(new Error(string(...x))) },
-  dbg(...x) {
-    if (cfg.log.verbose) {
-      this.err(...x)
-    }
-  }
-}
-
-// #endregion
-// #region help:EventData -------------------------------------------------- *
+/* ------------------------------------------------------------------------- */
 
 class EventData {
   #name = null
@@ -98,13 +71,20 @@ class EventData {
   get user() { return this.#user }
 
   complete() {
-    return String(this.#name).length > 1 && Object.keys(this.#data).length > 1
+    return String(this.name).length > 1 && Object.keys(this.data).length > 1
   }
 }
 
-// #endregion
+/* -----+------------------------------------------------------------------- +
+ | CODE : INIT
+ +------+-------------------- */
 
-// #region main:init ------------------------------------------------------- *
+era.config(cfg.era.locale)
+log.config({
+  header: {
+    middle: era.time.string
+  }
+})
 
 if (nox.has(cfg.mode, key)) {
   log.out(pkg.name, '-', pkg.description, '-', pkg.version)
@@ -113,29 +93,39 @@ if (nox.has(cfg.mode, key)) {
   log.out('prop:', cfg.mode[key].name, `(${cfg.mode[key].token})`)
   log.out('port:', cfg.mode[key].port)
   log.out('----')
+  log.out('init: express')
+  app.web = express()
+  log.out('init: multer')
+  app.get = multer()
+  log.out('init: mixpanel')
+  app.mix = mixpanel.init(cfg.mode[key].token)
+  log.out('----')
 } else {
   log.err('no such mode/configuration:', key)
   process.exit(1)
 }
 
-// #endregion
+/* -----+------------------------------------------------------------------- +
+ | CODE : HTTP HOOK
+ +------+-------------------- */
 
-// #region http:hook (listen) ---------------------------------------------- *
-
-web.listen(cfg.mode[key].port, () => {
+app.web.listen(cfg.mode[key].port, () => {
   log.out('listening for incoming data ...')
 })
 
-// #endregion
-// #region http:hook (post) ------------------------------------------------ *
+/* -----+------------------------------------------------------------------- +
+ | CODE : HTTP POST
+ +------+-------------------- */
 
-web.post('/', get.any(), (req, res) => {
+app.web.post('/', app.get.any(), (req, res) => {
   log.out('(http/post) hook!')
 
   var p = req.body ? JSON.parse(req.body.payload) : null
   var h = req.headers || { 'user-agent': null }
 
-  log.dbg('(http/post) body.payload:', p)
+  if (dbg) {
+    log.out('(http/post) body.payload:', p)
+  }
 
   log.out('(http/post) headers:', h)
   log.out('(http/post) headers[user-agent]:', h['user-agent'])
@@ -152,7 +142,7 @@ web.post('/', get.any(), (req, res) => {
 
   if (e.complete()) {
     log.out('(http/post) event.send() > mixpanel.com')
-    mix.track(e.name, e.data, (err) => {
+    app.mix.track(e.name, e.data, (err) => {
       if (err) {
         log.bug(err)
       }
@@ -162,12 +152,11 @@ web.post('/', get.any(), (req, res) => {
   }
 })
 
-// #endregion
-// #region http:hook (get) ------------------------------------------------- *
+/* -----+------------------------------------------------------------------- +
+ | CODE : HTTP GET
+ +------+-------------------- */
 
-web.get('/', (req, res) => {
+app.web.get('/', (req, res) => {
   log.out('(http/get)', '...')
   res.send(`${pkg.name} is up and running!`)
 })
-
-// #endregion
