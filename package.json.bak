@@ -11,8 +11,6 @@
     "email": "cyko@eggheadedmonkey.com"
   },
   "scripts": {
-    "preinit": "npm run nuke",
-    "init": "npm install",
     "test": "node app.js test",
     "main": "node app.js main",
     "nuke": "pwsh clean.ps1"
@@ -28,13 +26,15 @@
     }
   ],
   "dependencies": {
-    "express": "*",
-    "mixpanel": "*",
-    "multer": "*"
+    "era": "github:cyko-node/era#typescript",
+    "express": "^4.17.3",
+    "log": "github:cyko-node/log#typescript",
+    "mixpanel": "^0.14.0",
+    "multer": "^1.4.4",
+    "nox": "github:cyko-node/nox#typescript"
   },
   "devDependencies": {
-    "@types/express": "*",
-    "@types/mixpanel": "*",
-    "@types/multer": "*"
+    "@types/mixpanel": "^2.14.3",
+    "@types/node": "^17.0.21"
   }
 }
