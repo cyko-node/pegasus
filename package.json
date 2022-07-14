@@ -1,7 +1,7 @@
 {
   "name": "pegasus",
   "description": "Cyko: Plex Hooker (mixpanel.com)",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "app.js",
   "type": "commonjs",
   "private": true,
@@ -11,11 +11,11 @@
     "email": "cyko@eggheadedmonkey.com"
   },
   "scripts": {
+    "nuke": "pwsh clean.ps1",
     "preinit": "npm run nuke",
     "init": "npm install",
-    "test": "node app.js test",
-    "main": "node app.js main",
-    "nuke": "pwsh clean.ps1"
+    "test": "node main.js test",
+    "main": "node main.js main"
   },
   "repository": {
     "type": "git",
