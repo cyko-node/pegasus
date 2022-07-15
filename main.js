@@ -166,7 +166,7 @@ web.post('/', get.any(), (req, res) => {
 
 web.get('/', (req, res) => {
   log.out('(http/get)', '...')
-  res.send(`${pkg.name} is up and running!`) // browser message for ex...
+  res.send(`${pkg.name} is up and running!`) // browser(html) message for ex.
 })
 
 // #endregion
